@@ -1,16 +1,54 @@
 #include <thread>
 #include <iostream>
+#include <vector>
 
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <cstring>
 
 #include "util.hpp"
 #include "options.hpp"
+#include "http.hpp"
+
+namespace http_server {
 
 void worker()
 {
+    while (true) {
+
+        int socketfd = task_queue().pop();
+
+        char recv_buff[1024];
+        std::vector<char> request_buff;
+        std::vector<char> response_buff;
+
+        while (true) {
+
+            int read_cnt = recv(socketfd, recv_buff,
+                    sizeof(recv_buff), MSG_NOSIGNAL);
+
+            if (-1 == read_cnt)
+                break;
+
+            if (0 == read_cnt)
+                break;
+
+            request_buff.insert(request_buff.end(),
+                    recv_buff, recv_buff + read_cnt);
+
+            if (process_http_request(request_buff, response_buff)) {
+
+                send(socketfd, &response_buff[0],
+                        response_buff.size(), MSG_NOSIGNAL);
+                shutdown(socketfd, SHUT_RDWR);
+            }
+        }
+    }
+}
+
 }
 
 
@@ -22,15 +60,29 @@ int main(int argc, char **argv)
     daemonize();
 
     const options &opt = options::instance();
-    
-    sockaddr_in listen_addr = {0};
+
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < opt.thread_count; ++i) {
+
+        std::thread t(worker);
+        threads.push_back(std::move(t));
+    }
+
+
+    sockaddr_in listen_addr;
+    memset(&listen_addr, 0, sizeof(listen_addr));
     listen_addr.sin_family = AF_INET;
-    listen_addr.sin_port = opt.port;
+    listen_addr.sin_port = htons(opt.port);
     inet_pton(AF_INET, opt.host.c_str(), &listen_addr.sin_addr);
 
     int listen_sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (-1 == bind(listen_sock, &addr, sizeof(addr)))
+    if (-1 == bind(listen_sock,
+                   (const struct sockaddr*)&listen_addr,
+                   sizeof(listen_addr))) {
+
         exit(EXIT_FAILURE);
+    }
 
     if (-1 == listen(listen_sock, SOMAXCONN))
         exit(EXIT_FAILURE);
@@ -39,64 +91,16 @@ int main(int argc, char **argv)
 
 
         sockaddr_in incoming_addr;
+        socklen_t   socklen = sizeof(incoming_addr);
 
-        int conn_socket = accept(listen_socket, &incomming_addr, sizeof(incomming_addr));
+        int conn_socket = accept(listen_sock,
+                (struct sockaddr*)&incoming_addr, &socklen);
 
         if (-1 == conn_socket)
             continue;
 
         task_queue().push(conn_socket);
     }
-#if 0
-    for (;;) {
 
-        nfds = epoll_wait(epollfd, events, MAX_EVENTS, -1);
-
-        if (-1 == nfds) {
-
-            perror("epoll_pwait()");
-            exit(EXIT_FAILURE);
-        }
-
-        for (n = 0; n < nfds; ++n) {
-
-            if (events[n].data.fd == listen_socket) {
-
-                conn_socket = accept(listen_socket, NULL, NULL);
-
-                if (-1 == conn_socket) {
-
-                    perror("accept");
-                    exit(EXIT_FAILURE);
-                }
-
-                set_nonblocking(conn_socket);
-                ev.events = EPOLLIN | EPOLLET;
-                ev.data.fd = conn_socket;
-
-                if (-1 == epoll_ctl(epollfd, EPOLL_CTL_ADD, conn_socket,
-                            &ev)) {
-
-                    perror("epoll_ctl: conn_sock");
-                    exit(EXIT_FAILURE);
-                }
-
-            } else {
-
-                char buff[BUFF_SIZE];
-                size_t size = recv(events[n].data.fd, buff, BUFF_SIZE-1,
-                        MSG_DONTWAIT);
-
-                buff[size] = '\0';
-
-                if (0 == strcmp(buff, "OFF"))
-                    exit(EXIT_SUCCESS);
-
-                qsort(buff, size, sizeof(char), comp);
-                send(events[n].data.fd, buff, size, MSG_NOSIGNAL);
-            }
-        }
-    }
-#endif
     exit(EXIT_SUCCESS);
 }

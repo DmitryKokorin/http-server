@@ -1,0 +1,9 @@
+#pragma once
+
+#define HTTP_CODES_TABLE \
+    X(200, OK, "OK")         \
+    X(403, FORBIDDEN, "Forbidden")  \
+    X(404, NOT_FOUND, "Not Found")  \
+    X(500, INTERNAL_SERVER_ERROR, "Internal Server Error") \
+    X(501, NOT_IMPLEMENTED, "Not Implemented")
+

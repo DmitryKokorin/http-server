@@ -17,10 +17,11 @@ void print_usage()
 
 
 options::options()
-  : host("localhost")
+  : host("127.0.0.1")
   , port(80)
   , directory("./")
   , pid_file("./http_serever.pid")
+  , thread_count(1)
 {
 }
 
@@ -35,18 +36,19 @@ void options::parse(int argc, char **argv)
     options &o = instance();
 
     static struct option long_options[] = {
-        {"host",      required_argument, 0, 'h'},
-        {"port",      required_argument, 0, 'p'},
-        {"directory", required_argument, 0, 'd'},
-        {"pid_file",  required_argument, 0, 'f'},
-        {0,           0,                 0, 0  }
+        {"host",          required_argument, 0, 'h'},
+        {"port",          required_argument, 0, 'p'},
+        {"directory",     required_argument, 0, 'd'},
+        {"pid_file",      required_argument, 0, 'f'},
+        {"thread_count",  required_argument, 0, 't'},
+        {0,               0,                 0, 0  }
     };
 
     while (true) {
 
         int option_index;
 
-        int c = getopt_long(argc, argv, "h:p:d:f:",
+        int c = getopt_long(argc, argv, "h:p:d:f:t:",
                 long_options, &option_index);
 
         if (-1 == c)
@@ -72,6 +74,11 @@ void options::parse(int argc, char **argv)
         case 'f':
 
             o.pid_file = optarg;
+            break;
+
+        case 't':
+
+            o.thread_count = atoi(optarg);
             break;
 
         default:

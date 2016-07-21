@@ -24,7 +24,7 @@ public:
 
     T pop()
     {
-        std::unique_lock lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         while (queue_.empty()) {
 
             cond_.wait(lock);
@@ -35,9 +35,9 @@ public:
         return item;
     }
 
-    void push(const T &item) 
+    void push(const T &item)
     {
-        std::unique_lock lock(mutex_);
+        std::unique_lock<std::mutex> lock(mutex_);
         queue_.push(item);
         lock.unlock();
         cond_.notify_one();

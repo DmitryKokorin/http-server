@@ -12,6 +12,7 @@ struct options
     std::string directory;
 
     std::string pid_file;
+    int         thread_count;
 
     static options &instance();
     static void parse(int argc, char **argv);
