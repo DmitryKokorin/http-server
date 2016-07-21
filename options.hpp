@@ -11,9 +11,9 @@ struct options
     int         port;
     std::string directory;
 
-    std::string pid_filename;
+    std::string pid_file;
 
-    static const options &instance();
+    static options &instance();
     static void parse(int argc, char **argv);
 
 private:

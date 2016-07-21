@@ -15,6 +15,8 @@ namespace http_server {
 
 void daemonize()
 {
+    const options &o = options::instance();
+
     pid_t pid = fork();
 
     if (pid < 0)
@@ -23,7 +25,7 @@ void daemonize()
     if (pid == 0) {
 
         umask(0);
-        chdir("/");
+        chdir(o.directory.c_str());
         setsid();
 
         close(STDIN_FILENO);
@@ -32,7 +34,7 @@ void daemonize()
     }
     else {
 
-        std::fstream fs(pid_filename, std::ios::out);
+        std::fstream fs(o.pid_file.c_str(), std::ios::out);
         fs << pid;
         fs.sync();
         exit(EXIT_SUCCESS);
