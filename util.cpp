@@ -41,4 +41,10 @@ void daemonize()
     }
 }
 
+task_queue_t &task_queue()
+{
+    static task_queue_t tq;
+    return tq;
+}
+
 }
