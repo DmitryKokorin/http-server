@@ -41,8 +41,19 @@ void worker()
 
             if (process_http_request(request_buff, response_buff)) {
 
-                send(socketfd, &response_buff[0],
-                        response_buff.size(), MSG_NOSIGNAL);
+                ssize_t total_cnt = 0;
+                ssize_t sent_cnt = 0;
+
+                while (total_cnt != response_buff.size()) {
+
+                    sent_cnt = send(socketfd, &response_buff[0],
+                            response_buff.size(), MSG_NOSIGNAL);
+
+                    if (sent_cnt != -1)
+                        total_cnt += sent_cnt;
+                }
+
+
                 shutdown(socketfd, SHUT_RDWR);
             }
         }
