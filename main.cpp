@@ -46,8 +46,8 @@ void worker()
 
                 while (total_cnt != response_buff.size()) {
 
-                    sent_cnt = send(socketfd, &response_buff[0],
-                            response_buff.size(), MSG_NOSIGNAL);
+                    sent_cnt = send(socketfd, &response_buff[0] + total_cnt,
+                            response_buff.size() - total_cnt, MSG_NOSIGNAL);
 
                     if (sent_cnt != -1)
                         total_cnt += sent_cnt;
